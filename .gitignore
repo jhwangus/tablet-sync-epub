@@ -46,12 +46,6 @@ coverage.xml
 # pyenv
 .python-version
 
-# environments
-.env
-.venv
-env/
-venv/
-ENV/
-
-# MyProject
-.gemini/settings.json
+# Briefcase
+.briefcase/
+*.dist-info/

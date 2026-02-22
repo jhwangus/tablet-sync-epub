@@ -10,14 +10,35 @@
 - **Python 3**
 - **Tkinter**: Standard Python GUI toolkit.
 - **ttkwidgets**: Used for the `CheckboxTreeview` component to allow selective file operations.
-- **PyInstaller**: Used for building a standalone executable (`main.exe`).
+- **Briefcase (BeeWare)**: Used for building native installers (MSI on Windows).
 
-### Building the Executable
-Build the executable:
+## Building and Running
+
+### Prerequisites
+Ensure you have Python 3 installed. You will also need Briefcase.
+```bash
+pip install briefcase
+```
+
+### Running the Application
+To run the app in development mode:
+```bash
+python -m briefcase dev
+```
+
+### Building the Native Installer
+1. Create the application scaffold:
    ```bash
-   python -m PyInstaller src/main.spec
+   python -m briefcase create
    ```
-   The resulting executable will be found in the `dist/` directory after the build completes.
+2. Build the application:
+   ```bash
+   python -m briefcase build
+   ```
+3. Package the application as an MSI:
+   ```bash
+   python -m briefcase package
+   ```
 
 ## Development Conventions
 
@@ -31,7 +52,7 @@ Build the executable:
   - Reference: `F:/Documents/eBook`
 
 ## Key Files
-- `src/main.py`: Contains the entire GUI logic and file synchronization operations.
-- `src/main.spec`: Configuration for PyInstaller to package the script into a Windows executable.
+- `src/tablet_sync_epub/app.py`: Contains the entire GUI logic and file synchronization operations.
+- `pyproject.toml`: Configuration for Briefcase to package the app.
 - `assets/`: Directory containing project image resources (`Foothill.jpg`, `Foothill.png`).
 - `tests/`: Directory for project test cases.
