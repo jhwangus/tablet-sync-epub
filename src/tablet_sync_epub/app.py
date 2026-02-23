@@ -6,11 +6,15 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
 from ttkwidgets import CheckboxTreeview
+from platformdirs import user_data_dir
 
 # System Type Constants
-KINDLE_SYS = 1
+KOBO_SYS = 1
 ANDROID_SYS = 2
-SETTINGS_PATH = Path(".gemini/settings.json")
+
+# App metadata for platformdirs
+APP_NAME = "TabletSyncEpub"
+APP_AUTHOR = "jhwangus"
 
 class EBookSyncApp:
     def __init__(self, root):
@@ -22,15 +26,20 @@ class EBookSyncApp:
         if sys.platform == "win32":
             self.root.attributes('-toolwindow', True)
 
+        # Setup settings directory in AppData
+        self.data_dir = Path(user_data_dir(APP_NAME, APP_AUTHOR))
+        self.settings_path = self.data_dir / "settings.json"
+        
         # Default paths
         self.defaults = {
-            "kindle_path": "H:/DK_Documents",
+            "kobo_path": "H:/Books",
             "android_path": "H:/Books",
             "ref_path": "F:/Documents/eBook"
         }
+        
         self.load_settings()
 
-        self.kindle_path = tk.StringVar(value=self.settings.get("kindle_path", self.defaults["kindle_path"]))
+        self.kobo_path = tk.StringVar(value=self.settings.get("kobo_path", self.defaults["kobo_path"]))
         self.android_path = tk.StringVar(value=self.settings.get("android_path", self.defaults["android_path"]))
         self.ref_path = tk.StringVar(value=self.settings.get("ref_path", self.defaults["ref_path"]))
 
@@ -38,37 +47,39 @@ class EBookSyncApp:
 
     def load_settings(self):
         self.settings = {}
-        if SETTINGS_PATH.exists():
+        if self.settings_path.exists():
             try:
-                with open(SETTINGS_PATH, 'r') as f:
+                with open(self.settings_path, 'r', encoding='utf-8') as f:
                     self.settings = json.load(f)
             except Exception as e:
-                print(f"Error loading settings: {e}")
+                print(f"Error loading settings from {self.settings_path}: {e}")
 
     def save_settings(self):
         self.settings.update({
-            "kindle_path": self.kindle_path.get(),
+            "kobo_path": self.kobo_path.get(),
             "android_path": self.android_path.get(),
             "ref_path": self.ref_path.get()
         })
-        SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        
         try:
-            with open(SETTINGS_PATH, 'w') as f:
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+            with open(self.settings_path, 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=4)
+            print(f"Settings saved to {self.settings_path}")
         except Exception as e:
-            print(f"Error saving settings: {e}")
+            print(f"Error saving settings to {self.settings_path}: {e}")
 
     def setup_main_ui(self):
         frame = ttk.Frame(self.root)
         frame.grid(row=0, column=0, padx=10, pady=10)
 
-        kindle_btn = ttk.Button(
+        kobo_btn = ttk.Button(
             frame, 
-            text='Kindle 多看', 
-            command=lambda: self.create_sync_window(KINDLE_SYS)
+            text='Kobo eReader', 
+            command=lambda: self.create_sync_window(KOBO_SYS)
         )
-        kindle_btn.grid(column=0, row=0, padx=10, pady=7)
-        kindle_btn.configure(width=24)
+        kobo_btn.grid(column=0, row=0, padx=10, pady=7)
+        kobo_btn.configure(width=24)
 
         android_btn = ttk.Button(
             frame, 
@@ -79,11 +90,11 @@ class EBookSyncApp:
         android_btn.configure(width=24)
 
     def set_device_path(self, sys_type):
-        current_path = self.kindle_path.get() if sys_type == KINDLE_SYS else self.android_path.get()
+        current_path = self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get()
         filename = filedialog.askdirectory(initialdir=current_path)
         if filename:
-            if sys_type == KINDLE_SYS:
-                self.kindle_path.set(filename)
+            if sys_type == KOBO_SYS:
+                self.kobo_path.set(filename)
             else:
                 self.android_path.set(filename)
             self.save_settings()
@@ -94,14 +105,14 @@ class EBookSyncApp:
             self.ref_path.set(filename)
             self.save_settings()
 
-    def is_kindle_path_valid(self, path_str):
-        return '/DK_Documents/' in path_str or path_str.endswith('/DK_Documents')
+    def is_kobo_path_valid(self, path_str):
+        # Simplest check: path must exist
+        return Path(path_str).exists()
 
-    def show_kindle_path_error(self, path_str):
+    def show_kobo_path_error(self, path_str):
         messagebox.showerror(
-            'Kindle Path Error', 
-            f'{path_str} is not a valid path to a DK-Kindle.\n\n'
-            'The path should be the DK_Documents folder.\n\nPlease set Kindle Path correctly!'
+            'Kobo Path Error', 
+            f'{path_str} is not a valid path.\n\nPlease set Kobo Path correctly!'
         )
 
     def get_files_and_dirs(self, path):
@@ -114,7 +125,7 @@ class EBookSyncApp:
 
     def delete_selected(self, ct, sys_type, window):
         checked_items = ct.get_checked()
-        base_path = Path(self.kindle_path.get() if sys_type == KINDLE_SYS else self.android_path.get())
+        base_path = Path(self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get())
         
         for item_id in checked_items:
             item_name = ct.item(item_id, option='text')
@@ -133,7 +144,7 @@ class EBookSyncApp:
 
     def sync_selected(self, ct, sys_type, window):
         checked_items = ct.get_checked()
-        target_base = Path(self.kindle_path.get() if sys_type == KINDLE_SYS else self.android_path.get())
+        target_base = Path(self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get())
         ref_base = Path(self.ref_path.get())
         
         for item_id in checked_items:
@@ -151,6 +162,8 @@ class EBookSyncApp:
     def create_list_window(self, title, items, action_func):
         win = tk.Toplevel(self.root)
         win.title(title)
+        win.transient(self.root)
+        win.grab_set()
         
         ct = CheckboxTreeview(win, show='tree')
         ct.grid(column=0, row=0, columnspan=2, padx=10, pady=10)
@@ -174,10 +187,10 @@ class EBookSyncApp:
 
     def clean_read_books(self, sys_type):
         ref_p = Path(self.ref_path.get())
-        device_p_str = self.kindle_path.get() if sys_type == KINDLE_SYS else self.android_path.get()
+        device_p_str = self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get()
         
-        if sys_type == KINDLE_SYS and not self.is_kindle_path_valid(device_p_str):
-            self.show_kindle_path_error(device_p_str)
+        if sys_type == KOBO_SYS and not self.is_kobo_path_valid(device_p_str):
+            self.show_kobo_path_error(device_p_str)
             return
 
         read_prefixes = [f.name.removeprefix('V_') for f in ref_p.iterdir() if f.is_file() and f.name.startswith('V_')]
@@ -201,12 +214,12 @@ class EBookSyncApp:
         )
 
     def clean_empty_dirs(self, sys_type):
-        if sys_type != KINDLE_SYS:
+        if sys_type != KOBO_SYS:
             return
         
-        device_p_str = self.kindle_path.get()
-        if not self.is_kindle_path_valid(device_p_str):
-            self.show_kindle_path_error(device_p_str)
+        device_p_str = self.kobo_path.get()
+        if not self.is_kobo_path_valid(device_p_str):
+            self.show_kobo_path_error(device_p_str)
             return
 
         files, dirs = self.get_files_and_dirs(device_p_str)
@@ -224,10 +237,10 @@ class EBookSyncApp:
 
     def sync_books(self, sys_type):
         ref_p = Path(self.ref_path.get())
-        device_p_str = self.kindle_path.get() if sys_type == KINDLE_SYS else self.android_path.get()
+        device_p_str = self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get()
 
-        if sys_type == KINDLE_SYS and not self.is_kindle_path_valid(device_p_str):
-            self.show_kindle_path_error(device_p_str)
+        if sys_type == KOBO_SYS and not self.is_kobo_path_valid(device_p_str):
+            self.show_kobo_path_error(device_p_str)
             return
 
         ref_files = [f.name for f in ref_p.iterdir() if f.is_file() and not f.name.startswith('V_') and f.suffix == '.epub']
@@ -247,14 +260,16 @@ class EBookSyncApp:
 
     def create_sync_window(self, sys_type):
         win = tk.Toplevel(self.root)
-        win.title("Kindle Duokan Sync" if sys_type == KINDLE_SYS else "Android MoonReader Sync")
+        win.title("Kobo eReader Sync" if sys_type == KOBO_SYS else "Android MoonReader Sync")
+        win.transient(self.root)  # Set as transient window of root
+        win.grab_set()           # Make the window modal
 
         # Path Frame
         path_frame = ttk.Frame(win)
         path_frame.grid(row=0, column=0, sticky='nw', padx=10, pady=10)
 
-        device_label = 'Kindle path:' if sys_type == KINDLE_SYS else 'Android path:'
-        device_var = self.kindle_path if sys_type == KINDLE_SYS else self.android_path
+        device_label = 'Kobo path:' if sys_type == KOBO_SYS else 'Android path:'
+        device_var = self.kobo_path if sys_type == KOBO_SYS else self.android_path
 
         ttk.Label(path_frame, text=device_label).grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
         ttk.Entry(path_frame, width=50, textvariable=device_var).grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
@@ -267,12 +282,12 @@ class EBookSyncApp:
         btn_frame.grid(row=0, column=1, sticky='ne', padx=10, pady=10)
 
         actions = [
-            (f"Set {'Kindle' if sys_type == KINDLE_SYS else 'Android'} Path", lambda: self.set_device_path(sys_type)),
+            (f"Set {'Kobo' if sys_type == KOBO_SYS else 'Android'} Path", lambda: self.set_device_path(sys_type)),
             ("Set Ref. Path", self.set_ref_path),
             ("Clean read books", lambda: self.clean_read_books(sys_type)),
         ]
 
-        if sys_type == KINDLE_SYS:
+        if sys_type == KOBO_SYS:
             actions.append(("Clean book .dir", lambda: self.clean_empty_dirs(sys_type)))
 
         actions.extend([
