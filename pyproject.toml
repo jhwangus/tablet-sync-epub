@@ -11,7 +11,7 @@ text = "MIT"
 
 [tool.briefcase.app.tablet-sync-epub]
 formal_name = "Tablet Sync EPUB"
-description = "Synchronize EPUB files to Kindle and Android devices"
+description = "Synchronize EPUB files to KOReader and Android devices"
 icon = "assets/Foothill"
 sources = ["src/tablet_sync_epub"]
 requires = [

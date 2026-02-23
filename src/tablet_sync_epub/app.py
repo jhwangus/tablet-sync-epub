@@ -9,7 +9,7 @@ from ttkwidgets import CheckboxTreeview
 from platformdirs import user_data_dir
 
 # System Type Constants
-KOBO_SYS = 1
+KOREADER_SYS = 1
 ANDROID_SYS = 2
 
 # App metadata for platformdirs
@@ -32,14 +32,14 @@ class EBookSyncApp:
         
         # Default paths
         self.defaults = {
-            "kobo_path": "H:/Books",
+            "koreader_path": "H:/Books",
             "android_path": "H:/Books",
             "ref_path": "F:/Documents/eBook"
         }
         
         self.load_settings()
 
-        self.kobo_path = tk.StringVar(value=self.settings.get("kobo_path", self.defaults["kobo_path"]))
+        self.koreader_path = tk.StringVar(value=self.settings.get("koreader_path", self.defaults["koreader_path"]))
         self.android_path = tk.StringVar(value=self.settings.get("android_path", self.defaults["android_path"]))
         self.ref_path = tk.StringVar(value=self.settings.get("ref_path", self.defaults["ref_path"]))
 
@@ -56,7 +56,7 @@ class EBookSyncApp:
 
     def save_settings(self):
         self.settings.update({
-            "kobo_path": self.kobo_path.get(),
+            "koreader_path": self.koreader_path.get(),
             "android_path": self.android_path.get(),
             "ref_path": self.ref_path.get()
         })
@@ -73,13 +73,13 @@ class EBookSyncApp:
         frame = ttk.Frame(self.root)
         frame.grid(row=0, column=0, padx=10, pady=10)
 
-        kobo_btn = ttk.Button(
+        koreader_btn = ttk.Button(
             frame, 
-            text='Kobo eReader', 
-            command=lambda: self.create_sync_window(KOBO_SYS)
+            text='KOReader', 
+            command=lambda: self.create_sync_window(KOREADER_SYS)
         )
-        kobo_btn.grid(column=0, row=0, padx=10, pady=7)
-        kobo_btn.configure(width=24)
+        koreader_btn.grid(column=0, row=0, padx=10, pady=7)
+        koreader_btn.configure(width=24)
 
         android_btn = ttk.Button(
             frame, 
@@ -90,11 +90,11 @@ class EBookSyncApp:
         android_btn.configure(width=24)
 
     def set_device_path(self, sys_type):
-        current_path = self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get()
+        current_path = self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get()
         filename = filedialog.askdirectory(initialdir=current_path)
         if filename:
-            if sys_type == KOBO_SYS:
-                self.kobo_path.set(filename)
+            if sys_type == KOREADER_SYS:
+                self.koreader_path.set(filename)
             else:
                 self.android_path.set(filename)
             self.save_settings()
@@ -105,14 +105,14 @@ class EBookSyncApp:
             self.ref_path.set(filename)
             self.save_settings()
 
-    def is_kobo_path_valid(self, path_str):
+    def is_koreader_path_valid(self, path_str):
         # Simplest check: path must exist
         return Path(path_str).exists()
 
-    def show_kobo_path_error(self, path_str):
+    def show_koreader_path_error(self, path_str):
         messagebox.showerror(
-            'Kobo Path Error', 
-            f'{path_str} is not a valid path.\n\nPlease set Kobo Path correctly!'
+            'KOReader Path Error', 
+            f'{path_str} is not a valid path.\n\nPlease set KOReader Path correctly!'
         )
 
     def get_files_and_dirs(self, path):
@@ -125,7 +125,7 @@ class EBookSyncApp:
 
     def delete_selected(self, ct, sys_type, window):
         checked_items = ct.get_checked()
-        base_path = Path(self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get())
+        base_path = Path(self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get())
         
         for item_id in checked_items:
             item_name = ct.item(item_id, option='text')
@@ -144,7 +144,7 @@ class EBookSyncApp:
 
     def sync_selected(self, ct, sys_type, window):
         checked_items = ct.get_checked()
-        target_base = Path(self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get())
+        target_base = Path(self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get())
         ref_base = Path(self.ref_path.get())
         
         for item_id in checked_items:
@@ -187,10 +187,10 @@ class EBookSyncApp:
 
     def clean_read_books(self, sys_type):
         ref_p = Path(self.ref_path.get())
-        device_p_str = self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get()
+        device_p_str = self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get()
         
-        if sys_type == KOBO_SYS and not self.is_kobo_path_valid(device_p_str):
-            self.show_kobo_path_error(device_p_str)
+        if sys_type == KOREADER_SYS and not self.is_koreader_path_valid(device_p_str):
+            self.show_koreader_path_error(device_p_str)
             return
 
         read_prefixes = [f.name.removeprefix('V_') for f in ref_p.iterdir() if f.is_file() and f.name.startswith('V_')]
@@ -214,12 +214,12 @@ class EBookSyncApp:
         )
 
     def clean_empty_dirs(self, sys_type):
-        if sys_type != KOBO_SYS:
+        if sys_type != KOREADER_SYS:
             return
         
-        device_p_str = self.kobo_path.get()
-        if not self.is_kobo_path_valid(device_p_str):
-            self.show_kobo_path_error(device_p_str)
+        device_p_str = self.koreader_path.get()
+        if not self.is_koreader_path_valid(device_p_str):
+            self.show_koreader_path_error(device_p_str)
             return
 
         files, dirs = self.get_files_and_dirs(device_p_str)
@@ -237,10 +237,10 @@ class EBookSyncApp:
 
     def sync_books(self, sys_type):
         ref_p = Path(self.ref_path.get())
-        device_p_str = self.kobo_path.get() if sys_type == KOBO_SYS else self.android_path.get()
+        device_p_str = self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get()
 
-        if sys_type == KOBO_SYS and not self.is_kobo_path_valid(device_p_str):
-            self.show_kobo_path_error(device_p_str)
+        if sys_type == KOREADER_SYS and not self.is_koreader_path_valid(device_p_str):
+            self.show_koreader_path_error(device_p_str)
             return
 
         ref_files = [f.name for f in ref_p.iterdir() if f.is_file() and not f.name.startswith('V_') and f.suffix == '.epub']
@@ -260,7 +260,7 @@ class EBookSyncApp:
 
     def create_sync_window(self, sys_type):
         win = tk.Toplevel(self.root)
-        win.title("Kobo eReader Sync" if sys_type == KOBO_SYS else "Android MoonReader Sync")
+        win.title("KOReader Sync" if sys_type == KOREADER_SYS else "Android MoonReader Sync")
         win.transient(self.root)  # Set as transient window of root
         win.grab_set()           # Make the window modal
 
@@ -268,8 +268,8 @@ class EBookSyncApp:
         path_frame = ttk.Frame(win)
         path_frame.grid(row=0, column=0, sticky='nw', padx=10, pady=10)
 
-        device_label = 'Kobo path:' if sys_type == KOBO_SYS else 'Android path:'
-        device_var = self.kobo_path if sys_type == KOBO_SYS else self.android_path
+        device_label = 'KOReader path:' if sys_type == KOREADER_SYS else 'Android path:'
+        device_var = self.koreader_path if sys_type == KOREADER_SYS else self.android_path
 
         ttk.Label(path_frame, text=device_label).grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
         ttk.Entry(path_frame, width=50, textvariable=device_var).grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
@@ -282,12 +282,12 @@ class EBookSyncApp:
         btn_frame.grid(row=0, column=1, sticky='ne', padx=10, pady=10)
 
         actions = [
-            (f"Set {'Kobo' if sys_type == KOBO_SYS else 'Android'} Path", lambda: self.set_device_path(sys_type)),
+            (f"Set {'KOReader' if sys_type == KOREADER_SYS else 'Android'} Path", lambda: self.set_device_path(sys_type)),
             ("Set Ref. Path", self.set_ref_path),
             ("Clean read books", lambda: self.clean_read_books(sys_type)),
         ]
 
-        if sys_type == KOBO_SYS:
+        if sys_type == KOREADER_SYS:
             actions.append(("Clean book .dir", lambda: self.clean_empty_dirs(sys_type)))
 
         actions.extend([
