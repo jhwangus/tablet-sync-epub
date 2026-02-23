@@ -8,10 +8,6 @@ from pathlib import Path
 from ttkwidgets import CheckboxTreeview
 from platformdirs import user_data_dir
 
-# System Type Constants
-KOREADER_SYS = 1
-ANDROID_SYS = 2
-
 # App metadata for platformdirs
 APP_NAME = "TabletSyncEpub"
 APP_AUTHOR = "jhwangus"
@@ -32,18 +28,16 @@ class EBookSyncApp:
         
         # Default paths
         self.defaults = {
-            "koreader_path": "H:/Books",
-            "android_path": "H:/Books",
+            "device_path": "H:/Books",
             "ref_path": "F:/Documents/eBook"
         }
         
         self.load_settings()
 
-        self.koreader_path = tk.StringVar(value=self.settings.get("koreader_path", self.defaults["koreader_path"]))
-        self.android_path = tk.StringVar(value=self.settings.get("android_path", self.defaults["android_path"]))
+        self.device_path = tk.StringVar(value=self.settings.get("device_path", self.defaults["device_path"]))
         self.ref_path = tk.StringVar(value=self.settings.get("ref_path", self.defaults["ref_path"]))
 
-        self.setup_main_ui()
+        self.setup_ui()
 
     def load_settings(self):
         self.settings = {}
@@ -56,8 +50,7 @@ class EBookSyncApp:
 
     def save_settings(self):
         self.settings.update({
-            "koreader_path": self.koreader_path.get(),
-            "android_path": self.android_path.get(),
+            "device_path": self.device_path.get(),
             "ref_path": self.ref_path.get()
         })
         
@@ -69,34 +62,43 @@ class EBookSyncApp:
         except Exception as e:
             print(f"Error saving settings to {self.settings_path}: {e}")
 
-    def setup_main_ui(self):
-        frame = ttk.Frame(self.root)
-        frame.grid(row=0, column=0, padx=10, pady=10)
+    def setup_ui(self):
+        # Path Frame
+        path_frame = ttk.Frame(self.root)
+        path_frame.grid(row=0, column=0, sticky='nw', padx=10, pady=10)
 
-        koreader_btn = ttk.Button(
-            frame, 
-            text='KOReader', 
-            command=lambda: self.create_sync_window(KOREADER_SYS)
-        )
-        koreader_btn.grid(column=0, row=0, padx=10, pady=7)
-        koreader_btn.configure(width=24)
+        ttk.Label(path_frame, text='Device path:').grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
+        ttk.Entry(path_frame, width=50, textvariable=self.device_path).grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
 
-        android_btn = ttk.Button(
-            frame, 
-            text='Android MoonReader', 
-            command=lambda: self.create_sync_window(ANDROID_SYS)
-        )
-        android_btn.grid(column=1, row=0, padx=10, pady=7)
-        android_btn.configure(width=24)
+        ttk.Label(path_frame, text='Ref. path:').grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
+        ttk.Entry(path_frame, width=50, textvariable=self.ref_path).grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
 
-    def set_device_path(self, sys_type):
-        current_path = self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get()
-        filename = filedialog.askdirectory(initialdir=current_path)
+        # Button Frame
+        btn_frame = ttk.Frame(self.root)
+        btn_frame.grid(row=0, column=1, sticky='ne', padx=10, pady=10)
+
+        actions = [
+            ("Set Device Path", self.set_device_path),
+            ("Set Ref. Path", self.set_ref_path),
+            ("Clean read books", self.clean_read_books),
+            ("Clean book .dir", self.clean_empty_dirs),
+            ("Sync books", self.sync_books),
+            ("Exit", self.exit_app)
+        ]
+
+        for i, (text, cmd) in enumerate(actions):
+            btn = ttk.Button(btn_frame, text=text, command=cmd)
+            btn.grid(column=0, row=i, padx=5, pady=5, sticky='ew')
+            btn.configure(width=20)
+
+    def exit_app(self):
+        self.save_settings()
+        self.root.destroy()
+
+    def set_device_path(self):
+        filename = filedialog.askdirectory(initialdir=self.device_path.get())
         if filename:
-            if sys_type == KOREADER_SYS:
-                self.koreader_path.set(filename)
-            else:
-                self.android_path.set(filename)
+            self.device_path.set(filename)
             self.save_settings()
 
     def set_ref_path(self):
@@ -104,16 +106,6 @@ class EBookSyncApp:
         if filename:
             self.ref_path.set(filename)
             self.save_settings()
-
-    def is_koreader_path_valid(self, path_str):
-        # Simplest check: path must exist
-        return Path(path_str).exists()
-
-    def show_koreader_path_error(self, path_str):
-        messagebox.showerror(
-            'KOReader Path Error', 
-            f'{path_str} is not a valid path.\n\nPlease set KOReader Path correctly!'
-        )
 
     def get_files_and_dirs(self, path):
         p = Path(path)
@@ -123,9 +115,9 @@ class EBookSyncApp:
         dirs = [d.name for d in p.iterdir() if d.is_dir() and d.name.endswith('.dir')]
         return files, dirs
 
-    def delete_selected(self, ct, sys_type, window):
+    def delete_selected(self, ct, window):
         checked_items = ct.get_checked()
-        base_path = Path(self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get())
+        base_path = Path(self.device_path.get())
         
         for item_id in checked_items:
             item_name = ct.item(item_id, option='text')
@@ -142,9 +134,9 @@ class EBookSyncApp:
         messagebox.showinfo("Done", "Selected items deleted successfully.")
         window.destroy()
 
-    def sync_selected(self, ct, sys_type, window):
+    def sync_selected(self, ct, window):
         checked_items = ct.get_checked()
-        target_base = Path(self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get())
+        target_base = Path(self.device_path.get())
         ref_base = Path(self.ref_path.get())
         
         for item_id in checked_items:
@@ -185,12 +177,12 @@ class EBookSyncApp:
         ttk.Button(win, text='Cancel', command=win.destroy).grid(column=0, row=1, pady=10)
         ttk.Button(win, text='Proceed', command=lambda: action_func(ct, win)).grid(column=1, row=1, pady=10)
 
-    def clean_read_books(self, sys_type):
+    def clean_read_books(self):
         ref_p = Path(self.ref_path.get())
-        device_p_str = self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get()
+        device_p_str = self.device_path.get()
         
-        if sys_type == KOREADER_SYS and not self.is_koreader_path_valid(device_p_str):
-            self.show_koreader_path_error(device_p_str)
+        if not Path(device_p_str).exists():
+            messagebox.showerror('Path Error', f'{device_p_str} is not a valid path.')
             return
 
         read_prefixes = [f.name.removeprefix('V_') for f in ref_p.iterdir() if f.is_file() and f.name.startswith('V_')]
@@ -210,16 +202,13 @@ class EBookSyncApp:
         self.create_list_window(
             "Delete Read Books", 
             del_list, 
-            lambda ct, win: self.delete_selected(ct, sys_type, win)
+            lambda ct, win: self.delete_selected(ct, win)
         )
 
-    def clean_empty_dirs(self, sys_type):
-        if sys_type != KOREADER_SYS:
-            return
-        
-        device_p_str = self.koreader_path.get()
-        if not self.is_koreader_path_valid(device_p_str):
-            self.show_koreader_path_error(device_p_str)
+    def clean_empty_dirs(self):
+        device_p_str = self.device_path.get()
+        if not Path(device_p_str).exists():
+            messagebox.showerror('Path Error', f'{device_p_str} is not a valid path.')
             return
 
         files, dirs = self.get_files_and_dirs(device_p_str)
@@ -235,12 +224,12 @@ class EBookSyncApp:
         
         messagebox.showinfo("Done", f"Cleaned {len(orphaned_dirs)} orphaned directories.")
 
-    def sync_books(self, sys_type):
+    def sync_books(self):
         ref_p = Path(self.ref_path.get())
-        device_p_str = self.koreader_path.get() if sys_type == KOREADER_SYS else self.android_path.get()
+        device_p_str = self.device_path.get()
 
-        if sys_type == KOREADER_SYS and not self.is_koreader_path_valid(device_p_str):
-            self.show_koreader_path_error(device_p_str)
+        if not Path(device_p_str).exists():
+            messagebox.showerror('Path Error', f'{device_p_str} is not a valid path.')
             return
 
         ref_files = [f.name for f in ref_p.iterdir() if f.is_file() and not f.name.startswith('V_') and f.suffix == '.epub']
@@ -255,50 +244,8 @@ class EBookSyncApp:
         self.create_list_window(
             "Sync New Books", 
             sync_list, 
-            lambda ct, win: self.sync_selected(ct, sys_type, win)
+            lambda ct, win: self.sync_selected(ct, win)
         )
-
-    def create_sync_window(self, sys_type):
-        win = tk.Toplevel(self.root)
-        win.title("KOReader Sync" if sys_type == KOREADER_SYS else "Android MoonReader Sync")
-        win.transient(self.root)  # Set as transient window of root
-        win.grab_set()           # Make the window modal
-
-        # Path Frame
-        path_frame = ttk.Frame(win)
-        path_frame.grid(row=0, column=0, sticky='nw', padx=10, pady=10)
-
-        device_label = 'KOReader path:' if sys_type == KOREADER_SYS else 'Android path:'
-        device_var = self.koreader_path if sys_type == KOREADER_SYS else self.android_path
-
-        ttk.Label(path_frame, text=device_label).grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
-        ttk.Entry(path_frame, width=50, textvariable=device_var).grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
-
-        ttk.Label(path_frame, text='Ref. path:').grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
-        ttk.Entry(path_frame, width=50, textvariable=self.ref_path).grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
-
-        # Button Frame
-        btn_frame = ttk.Frame(win)
-        btn_frame.grid(row=0, column=1, sticky='ne', padx=10, pady=10)
-
-        actions = [
-            (f"Set {'KOReader' if sys_type == KOREADER_SYS else 'Android'} Path", lambda: self.set_device_path(sys_type)),
-            ("Set Ref. Path", self.set_ref_path),
-            ("Clean read books", lambda: self.clean_read_books(sys_type)),
-        ]
-
-        if sys_type == KOREADER_SYS:
-            actions.append(("Clean book .dir", lambda: self.clean_empty_dirs(sys_type)))
-
-        actions.extend([
-            ("Sync books", lambda: self.sync_books(sys_type)),
-            ("Exit", lambda: (self.save_settings(), win.destroy()))
-        ])
-
-        for i, (text, cmd) in enumerate(actions):
-            btn = ttk.Button(btn_frame, text=text, command=cmd)
-            btn.grid(column=0, row=i, padx=5, pady=5, sticky='ew')
-            btn.configure(width=20)
 
 def main():
     root = tk.Tk()

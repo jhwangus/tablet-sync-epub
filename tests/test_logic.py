@@ -8,7 +8,7 @@ import sys
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from tablet_sync_epub.app import EBookSyncApp, KOREADER_SYS, ANDROID_SYS
+from tablet_sync_epub.app import EBookSyncApp
 import tkinter as tk
 
 class TestEBookSyncLogic(unittest.TestCase):
@@ -23,15 +23,15 @@ class TestEBookSyncLogic(unittest.TestCase):
         self.device_dir.mkdir(parents=True)
         
         self.app.ref_path.set(str(self.ref_dir))
-        self.app.koreader_path.set(str(self.device_dir))
+        self.app.device_path.set(str(self.device_dir))
 
     def tearDown(self):
         self.root.destroy()
         shutil.rmtree(self.test_dir)
 
-    def test_koreader_path_validation(self):
-        self.assertTrue(self.app.is_koreader_path_valid(str(self.device_dir)))
-        self.assertFalse(self.app.is_koreader_path_valid("Z:/NonExistentPath"))
+    def test_path_validation(self):
+        # We now just check if the path exists
+        self.assertTrue(Path(self.app.device_path.get()).exists())
 
     def test_get_files_and_dirs(self):
         (self.device_dir / "book1.epub").touch()

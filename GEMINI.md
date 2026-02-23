@@ -4,7 +4,7 @@
 - Use 4 spaces for indentation.  
 
 ## Project Overview
-`tablet-sync-epub` is a Python-based GUI utility designed to synchronize EPUB files between a reference directory and e-reader devices (specifically KOReader or Android with MoonReader). It provides features to synchronize new books and "clean" read books from these devices by checking for a `V_` prefix on the reference files.
+`tablet-sync-epub` is a Python-based GUI utility designed to synchronize EPUB files between a reference directory and e-reader devices (such as KOReader or MoonReader on Android). It provides features to synchronize new books and "clean" read books from these devices by checking for a `V_` prefix on the reference files.
 
 ### Main Technologies
 - **Python 3**
@@ -42,13 +42,12 @@ python -m briefcase dev
 
 ## Development Conventions
 
-- **GUI Architecture**: The application uses a modular approach for creating windows and frames (`create_win`, `create_path_frame`, `create_button_frame`).
+- **GUI Architecture**: The application uses a single-window interface for managing device and reference paths.
 - **File Naming & Synchronization Logic**:
   - `V_*.epub`: Files prefixed with `V_` in the reference path are treated as "read" and can be deleted from the target device using the "Clean read books" feature.
   - `.dir` directories: The application manages auxiliary directories (common in KOReader or MoonReader for metadata/bookmarks) that correspond to EPUB filenames.
 - **Default Paths**:
-  - KOReader: `H:/Books`
-  - Android (MoonReader): `H:/Books`
+  - Device path: `H:/Books`
   - Reference: `F:/Documents/eBook`
 
 ## Key Files
