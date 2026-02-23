@@ -3,7 +3,7 @@ import sys
 import shutil
 import json
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, ttk, scrolledtext
 from pathlib import Path
 from ttkwidgets import CheckboxTreeview
 from platformdirs import user_data_dir
@@ -11,6 +11,18 @@ from platformdirs import user_data_dir
 # App metadata for platformdirs
 APP_NAME = "TabletSyncEpub"
 APP_AUTHOR = "jhwangus"
+
+class TextRedirector:
+    """Class to redirect stdout to a tkinter text widget."""
+    def __init__(self, widget):
+        self.widget = widget
+
+    def write(self, str):
+        self.widget.insert(tk.END, str)
+        self.widget.see(tk.END)
+
+    def flush(self):
+        pass
 
 class EBookSyncApp:
     def __init__(self, root):
@@ -38,6 +50,9 @@ class EBookSyncApp:
         self.ref_path = tk.StringVar(value=self.settings.get("ref_path", self.defaults["ref_path"]))
 
         self.setup_ui()
+        
+        # Redirect stdout
+        sys.stdout = TextRedirector(self.log_area)
 
     def load_settings(self):
         self.settings = {}
@@ -63,15 +78,24 @@ class EBookSyncApp:
             print(f"Error saving settings to {self.settings_path}: {e}")
 
     def setup_ui(self):
+        # Main Layout: Two main columns
+        # Column 0: Path entries and Log Area
+        # Column 1: Buttons
+        
         # Path Frame
         path_frame = ttk.Frame(self.root)
         path_frame.grid(row=0, column=0, sticky='nw', padx=10, pady=10)
 
         ttk.Label(path_frame, text='Device path:').grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
-        ttk.Entry(path_frame, width=50, textvariable=self.device_path).grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
+        ttk.Entry(path_frame, width=60, textvariable=self.device_path).grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
 
         ttk.Label(path_frame, text='Ref. path:').grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
-        ttk.Entry(path_frame, width=50, textvariable=self.ref_path).grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
+        ttk.Entry(path_frame, width=60, textvariable=self.ref_path).grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
+
+        # Log Area (below paths)
+        ttk.Label(path_frame, text='Activity Log:').grid(column=0, row=2, sticky=tk.W, padx=5, pady=5)
+        self.log_area = scrolledtext.ScrolledText(path_frame, width=65, height=15, font=("Consolas", 9))
+        self.log_area.grid(column=0, row=3, columnspan=2, padx=5, pady=5)
 
         # Button Frame
         btn_frame = ttk.Frame(self.root)
