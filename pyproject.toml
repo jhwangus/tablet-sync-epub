@@ -30,7 +30,9 @@ requires = [
 ]
 
 [tool.briefcase.app.tablet-sync-epub.windows]
-requires = []
+requires = [
+    "pywin32",
+]
 
 [tool.briefcase.app.tablet-sync-epub.android]
 requires = [

@@ -1,6 +1,4 @@
-import os
 import sys
-import shutil
 import json
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk, scrolledtext
@@ -8,12 +6,16 @@ from pathlib import Path
 from ttkwidgets import CheckboxTreeview
 from platformdirs import user_data_dir
 
+from .device_fs import DeviceFileSystem, browse_for_device_folder
+
 # App metadata for platformdirs
 APP_NAME = "TabletSyncEpub"
 APP_AUTHOR = "jhwangus"
 
+
 class TextRedirector:
     """Class to redirect stdout to a tkinter text widget."""
+
     def __init__(self, widget):
         self.widget = widget
 
@@ -24,33 +26,35 @@ class TextRedirector:
     def flush(self):
         pass
 
+
 class EBookSyncApp:
     def __init__(self, root):
         self.root = root
         self.root.title("eBook Synch")
         self.root.resizable(False, False)
-        
+
         # Windows only: remove minimize/maximize buttons
         if sys.platform == "win32":
-            self.root.attributes('-toolwindow', True)
+            self.root.attributes("-toolwindow", True)
 
         # Setup settings directory in AppData
         self.data_dir = Path(user_data_dir(APP_NAME, APP_AUTHOR))
         self.settings_path = self.data_dir / "settings.json"
-        
+
         # Default paths
-        self.defaults = {
-            "device_path": "H:/Books",
-            "ref_path": "F:/Documents/eBook"
-        }
-        
+        self.defaults = {"device_path": "H:/Books", "ref_path": "F:/Documents/eBook"}
+
         self.load_settings()
 
-        self.device_path = tk.StringVar(value=self.settings.get("device_path", self.defaults["device_path"]))
-        self.ref_path = tk.StringVar(value=self.settings.get("ref_path", self.defaults["ref_path"]))
+        self.device_path = tk.StringVar(
+            value=self.settings.get("device_path", self.defaults["device_path"])
+        )
+        self.ref_path = tk.StringVar(
+            value=self.settings.get("ref_path", self.defaults["ref_path"])
+        )
 
         self.setup_ui()
-        
+
         # Redirect stdout
         sys.stdout = TextRedirector(self.log_area)
 
@@ -58,20 +62,19 @@ class EBookSyncApp:
         self.settings = {}
         if self.settings_path.exists():
             try:
-                with open(self.settings_path, 'r', encoding='utf-8') as f:
+                with open(self.settings_path, "r", encoding="utf-8") as f:
                     self.settings = json.load(f)
             except Exception as e:
                 print(f"Error loading settings from {self.settings_path}: {e}")
 
     def save_settings(self):
-        self.settings.update({
-            "device_path": self.device_path.get(),
-            "ref_path": self.ref_path.get()
-        })
-        
+        self.settings.update(
+            {"device_path": self.device_path.get(), "ref_path": self.ref_path.get()}
+        )
+
         try:
             self.data_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.settings_path, 'w', encoding='utf-8') as f:
+            with open(self.settings_path, "w", encoding="utf-8") as f:
                 json.dump(self.settings, f, indent=4)
             print(f"Settings saved to {self.settings_path}")
         except Exception as e:
@@ -81,25 +84,37 @@ class EBookSyncApp:
         # Main Layout: Two main columns
         # Column 0: Path entries and Log Area
         # Column 1: Buttons
-        
+
         # Path Frame
         path_frame = ttk.Frame(self.root)
-        path_frame.grid(row=0, column=0, sticky='nw', padx=10, pady=10)
+        path_frame.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
 
-        ttk.Label(path_frame, text='Device path:').grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
-        ttk.Entry(path_frame, width=60, textvariable=self.device_path).grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(path_frame, text="Device path:").grid(
+            column=0, row=0, sticky=tk.W, padx=5, pady=5
+        )
+        ttk.Entry(path_frame, width=60, textvariable=self.device_path).grid(
+            column=1, row=0, sticky=tk.W, padx=5, pady=5
+        )
 
-        ttk.Label(path_frame, text='Ref. path:').grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
-        ttk.Entry(path_frame, width=60, textvariable=self.ref_path).grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(path_frame, text="Ref. path:").grid(
+            column=0, row=1, sticky=tk.W, padx=5, pady=5
+        )
+        ttk.Entry(path_frame, width=60, textvariable=self.ref_path).grid(
+            column=1, row=1, sticky=tk.W, padx=5, pady=5
+        )
 
         # Log Area (below paths)
-        ttk.Label(path_frame, text='Activity Log:').grid(column=0, row=2, sticky=tk.W, padx=5, pady=5)
-        self.log_area = scrolledtext.ScrolledText(path_frame, width=65, height=15, font=("Consolas", 9))
+        ttk.Label(path_frame, text="Activity Log:").grid(
+            column=0, row=2, sticky=tk.W, padx=5, pady=5
+        )
+        self.log_area = scrolledtext.ScrolledText(
+            path_frame, width=65, height=15, font=("Consolas", 9)
+        )
         self.log_area.grid(column=0, row=3, columnspan=2, padx=5, pady=5)
 
         # Button Frame
         btn_frame = ttk.Frame(self.root)
-        btn_frame.grid(row=0, column=1, sticky='ne', padx=10, pady=10)
+        btn_frame.grid(row=0, column=1, sticky="ne", padx=10, pady=10)
 
         actions = [
             ("Set Device Path", self.set_device_path),
@@ -107,12 +122,12 @@ class EBookSyncApp:
             ("Clean read books", self.clean_read_books),
             ("Clean book .dir", self.clean_empty_dirs),
             ("Sync books", self.sync_books),
-            ("Exit", self.exit_app)
+            ("Exit", self.exit_app),
         ]
 
         for i, (text, cmd) in enumerate(actions):
             btn = ttk.Button(btn_frame, text=text, command=cmd)
-            btn.grid(column=0, row=i, padx=5, pady=5, sticky='ew')
+            btn.grid(column=0, row=i, padx=5, pady=5, sticky="ew")
             btn.configure(width=20)
 
     def exit_app(self):
@@ -120,7 +135,7 @@ class EBookSyncApp:
         self.root.destroy()
 
     def set_device_path(self):
-        filename = filedialog.askdirectory(initialdir=self.device_path.get())
+        filename = browse_for_device_folder(initial_dir=self.device_path.get())
         if filename:
             self.device_path.set(filename)
             self.save_settings()
@@ -132,46 +147,42 @@ class EBookSyncApp:
             self.save_settings()
 
     def get_files_and_dirs(self, path):
-        p = Path(path)
-        if not p.exists():
-            return [], []
-        files = [f.name for f in p.iterdir() if f.is_file()]
-        dirs = [d.name for d in p.iterdir() if d.is_dir() and d.name.endswith('.dir')]
-        return files, dirs
+        dfs = DeviceFileSystem(path)
+        return dfs.get_files_and_dirs()
 
     def delete_selected(self, ct, window):
         checked_items = ct.get_checked()
-        base_path = Path(self.device_path.get())
-        
+        dfs = DeviceFileSystem(self.device_path.get())
+
         for item_id in checked_items:
-            item_name = ct.item(item_id, option='text')
-            target_path = base_path / item_name
-            
-            if target_path.is_dir():
-                shutil.rmtree(target_path, ignore_errors=True)
-            elif target_path.exists():
-                target_path.unlink()
-            
-            print(f"Deleted: {target_path}")
+            item_name = ct.item(item_id, option="text")
+
+            if dfs.delete_item(item_name):
+                print(f"Deleted: {item_name}")
+            else:
+                print(f"Failed to delete: {item_name}")
+
             ct.delete(item_id)
-        
+
         messagebox.showinfo("Done", "Selected items deleted successfully.")
         window.destroy()
 
     def sync_selected(self, ct, window):
         checked_items = ct.get_checked()
-        target_base = Path(self.device_path.get())
+        dfs = DeviceFileSystem(self.device_path.get())
         ref_base = Path(self.ref_path.get())
-        
+
         for item_id in checked_items:
-            item_name = ct.item(item_id, option='text')
+            item_name = ct.item(item_id, option="text")
             src_file = ref_base / item_name
-            dest_file = target_base / item_name
-            
-            shutil.copyfile(src_file, dest_file)
-            print(f"Synced: {dest_file}")
+
+            if dfs.copy_file_to(src_file, item_name):
+                print(f"Synced: {item_name}")
+            else:
+                print(f"Failed to sync: {item_name}")
+
             ct.delete(item_id)
-            
+
         messagebox.showinfo("Done", "Selected items transferred successfully.")
         window.destroy()
 
@@ -180,38 +191,69 @@ class EBookSyncApp:
         win.title(title)
         win.transient(self.root)
         win.grab_set()
-        
-        ct = CheckboxTreeview(win, show='tree')
+
+        ct = CheckboxTreeview(win, show="tree")
         ct.grid(column=0, row=0, columnspan=2, padx=10, pady=10)
-        
+
         style = ttk.Style(win)
-        style.layout('Checkbox.Treeview.Item',
-                     [('Treeitem.padding',
-                       {'sticky': 'nswe',
-                        'children': [('Treeitem.image', {'side': 'left', 'sticky': ''}),
-                                     ('Treeitem.focus', {'side': 'left', 'sticky': '',
-                                                         'children': [('Treeitem.text',
-                                                                       {'side': 'left', 'sticky': ''})]})]})])
-        style.configure('Checkbox.Treeview', borderwidth=1, relief='sunken')
+        style.layout(
+            "Checkbox.Treeview.Item",
+            [
+                (
+                    "Treeitem.padding",
+                    {
+                        "sticky": "nswe",
+                        "children": [
+                            ("Treeitem.image", {"side": "left", "sticky": ""}),
+                            (
+                                "Treeitem.focus",
+                                {
+                                    "side": "left",
+                                    "sticky": "",
+                                    "children": [
+                                        (
+                                            "Treeitem.text",
+                                            {"side": "left", "sticky": ""},
+                                        )
+                                    ],
+                                },
+                            ),
+                        ],
+                    },
+                )
+            ],
+        )
+        style.configure("Checkbox.Treeview", borderwidth=1, relief="sunken")
 
         for item in items:
-            node_id = ct.insert('', 'end', text=item)
-            ct.change_state(node_id, 'checked')
+            node_id = ct.insert("", "end", text=item)
+            ct.change_state(node_id, "checked")
 
-        ttk.Button(win, text='Cancel', command=win.destroy).grid(column=0, row=1, pady=10)
-        ttk.Button(win, text='Proceed', command=lambda: action_func(ct, win)).grid(column=1, row=1, pady=10)
+        ttk.Button(win, text="Cancel", command=win.destroy).grid(
+            column=0, row=1, pady=10
+        )
+        ttk.Button(win, text="Proceed", command=lambda: action_func(ct, win)).grid(
+            column=1, row=1, pady=10
+        )
 
     def clean_read_books(self):
         ref_p = Path(self.ref_path.get())
         device_p_str = self.device_path.get()
-        
-        if not Path(device_p_str).exists():
-            messagebox.showerror('Path Error', f'{device_p_str} is not a valid path.')
+        dfs = DeviceFileSystem(device_p_str)
+
+        if not dfs.exists():
+            messagebox.showerror(
+                "Path Error", f"{device_p_str} is not a valid/accessible path."
+            )
             return
 
-        read_prefixes = [f.name.removeprefix('V_') for f in ref_p.iterdir() if f.is_file() and f.name.startswith('V_')]
+        read_prefixes = [
+            f.name.removeprefix("V_")
+            for f in ref_p.iterdir()
+            if f.is_file() and f.name.startswith("V_")
+        ]
         device_files, device_dirs = self.get_files_and_dirs(device_p_str)
-        
+
         del_list = []
         for book in read_prefixes:
             if book in device_files:
@@ -224,41 +266,52 @@ class EBookSyncApp:
             return
 
         self.create_list_window(
-            "Delete Read Books", 
-            del_list, 
-            lambda ct, win: self.delete_selected(ct, win)
+            "Delete Read Books", del_list, lambda ct, win: self.delete_selected(ct, win)
         )
 
     def clean_empty_dirs(self):
         device_p_str = self.device_path.get()
-        if not Path(device_p_str).exists():
-            messagebox.showerror('Path Error', f'{device_p_str} is not a valid path.')
+        dfs = DeviceFileSystem(device_p_str)
+
+        if not dfs.exists():
+            messagebox.showerror(
+                "Path Error", f"{device_p_str} is not a valid/accessible path."
+            )
             return
 
         files, dirs = self.get_files_and_dirs(device_p_str)
-        orphaned_dirs = [d for d in dirs if d.removesuffix('.dir') not in files]
+        orphaned_dirs = [d for d in dirs if d.removesuffix(".dir") not in files]
 
         if not orphaned_dirs:
             messagebox.showinfo("Info", "No orphaned .dir directories found.")
             return
 
         for d in orphaned_dirs:
-            shutil.rmtree(Path(device_p_str) / d, ignore_errors=True)
+            dfs.delete_item(d)
             print(f"Removed orphaned dir: {d}")
-        
-        messagebox.showinfo("Done", f"Cleaned {len(orphaned_dirs)} orphaned directories.")
+
+        messagebox.showinfo(
+            "Done", f"Cleaned {len(orphaned_dirs)} orphaned directories."
+        )
 
     def sync_books(self):
         ref_p = Path(self.ref_path.get())
         device_p_str = self.device_path.get()
+        dfs = DeviceFileSystem(device_p_str)
 
-        if not Path(device_p_str).exists():
-            messagebox.showerror('Path Error', f'{device_p_str} is not a valid path.')
+        if not dfs.exists():
+            messagebox.showerror(
+                "Path Error", f"{device_p_str} is not a valid/accessible path."
+            )
             return
 
-        ref_files = [f.name for f in ref_p.iterdir() if f.is_file() and not f.name.startswith('V_') and f.suffix == '.epub']
+        ref_files = [
+            f.name
+            for f in ref_p.iterdir()
+            if f.is_file() and not f.name.startswith("V_") and f.suffix == ".epub"
+        ]
         device_files, _ = self.get_files_and_dirs(device_p_str)
-        
+
         sync_list = [f for f in ref_files if f not in device_files]
 
         if not sync_list:
@@ -266,15 +319,15 @@ class EBookSyncApp:
             return
 
         self.create_list_window(
-            "Sync New Books", 
-            sync_list, 
-            lambda ct, win: self.sync_selected(ct, win)
+            "Sync New Books", sync_list, lambda ct, win: self.sync_selected(ct, win)
         )
+
 
 def main():
     root = tk.Tk()
-    app = EBookSyncApp(root)
+    app = EBookSyncApp(root)  # noqa: F841
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
