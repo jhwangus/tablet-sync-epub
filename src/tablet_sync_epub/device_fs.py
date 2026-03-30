@@ -105,14 +105,40 @@ class DeviceFileSystem:
             return True
         return False
 
-    def copy_file_to(self, src_file: str | Path, dest_name: str) -> bool:
-        if self.is_shell_path and self.shell_folder:
-            abs_src = str(Path(src_file).resolve())
-            self.shell_folder.CopyHere(abs_src, 16)
+    def copy_files(self, src_files: list[str | Path], update_cb=None) -> bool:
+        if not src_files:
             return True
 
-        dest_file = self.path / dest_name
-        shutil.copyfile(src_file, dest_file)
+        if self.is_shell_path and self.shell_folder:
+            staging_dir = Path.cwd() / ".sync_staging"
+
+            # Clear old staging to prevent pushing deleted books
+            if staging_dir.exists():
+                shutil.rmtree(staging_dir, ignore_errors=True)
+            staging_dir.mkdir(parents=True, exist_ok=True)
+
+            for src in src_files:
+                shutil.copy2(src, staging_dir / Path(src).name)
+                if update_cb:
+                    update_cb()
+
+            # Batch transfer to MTP instantly via native Windows queue
+            abs_staging = str(staging_dir.resolve())
+            shell = win32com.client.Dispatch("Shell.Application")
+            stage_namespace = shell.NameSpace(abs_staging)
+
+            if stage_namespace:
+                self.shell_folder.CopyHere(stage_namespace.Items(), 16)
+
+            return True
+
+        for src in src_files:
+            src_path = Path(src)
+            dest_file = self.path / src_path.name
+            shutil.copyfile(src_path, dest_file)
+            if update_cb:
+                update_cb()
+
         return True
 
 

@@ -173,17 +173,19 @@ class EBookSyncApp:
         dfs = DeviceFileSystem(self.device_path.get())
         ref_base = Path(self.ref_path.get())
 
+        src_files = []
         for item_id in checked_items:
             item_name = ct.item(item_id, option="text")
             src_file = ref_base / item_name
-
-            if dfs.copy_file_to(src_file, item_name):
-                print(f"Synced: {item_name}")
-            else:
-                print(f"Failed to sync: {item_name}")
-
+            src_files.append(src_file)
+            print(f"Staging: {item_name}")
             ct.delete(item_id)
             self.root.update()
+
+        if dfs.copy_files(src_files, update_cb=self.root.update):
+            print("Batch transfer sent to device natively.")
+        else:
+            print("Batch transfer failed.")
 
         messagebox.showinfo("Done", "Selected items transferred successfully.")
         window.destroy()
