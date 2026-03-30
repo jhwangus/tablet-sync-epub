@@ -163,6 +163,7 @@ class EBookSyncApp:
                 print(f"Failed to delete: {item_name}")
 
             ct.delete(item_id)
+            self.root.update()
 
         messagebox.showinfo("Done", "Selected items deleted successfully.")
         window.destroy()
@@ -182,6 +183,7 @@ class EBookSyncApp:
                 print(f"Failed to sync: {item_name}")
 
             ct.delete(item_id)
+            self.root.update()
 
         messagebox.showinfo("Done", "Selected items transferred successfully.")
         window.destroy()
@@ -191,6 +193,11 @@ class EBookSyncApp:
         win.title(title)
         win.transient(self.root)
         win.grab_set()
+
+        self.root.update_idletasks()
+        x = self.root.winfo_rootx() + 50
+        y = self.root.winfo_rooty() + 50
+        win.geometry(f"+{x}+{y}")
 
         ct = CheckboxTreeview(win, show="tree")
         ct.grid(column=0, row=0, columnspan=2, padx=10, pady=10)
