@@ -46,6 +46,9 @@ coverage.xml
 # pyenv
 .python-version
 
-# Briefcase
+# Build Tooling / Environments
 .briefcase/
 *.dist-info/
+.venv/
+.uv/
+uv.lock
